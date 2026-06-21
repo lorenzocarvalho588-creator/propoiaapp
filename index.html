@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PropostaIA – Propostas Comerciais com IA</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,800;9..144,900&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.395.0/lucide.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+  *{font-family:'Plus Jakarta Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased;box-sizing:border-box}
+  body{margin:0;background:linear-gradient(180deg,#0E2019 0%,#0A1611 100%);color:#E9E7DE;min-height:100vh}
+  i[data-lucide]{width:18px;height:18px;display:inline-block;vertical-align:middle}
+  .hov{transition:all .18s ease}.hov:hover{transform:translateY(-2px)}
+  .spin{width:32px;height:32px;border:3px solid #DCE5E1;border-top-color:#2E5A4C;border-radius:50%;animation:sp 1s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  @keyframes fu{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+  .fu{animation:fu .35s ease both}
+  @keyframes sl{0%{margin-left:-40%}100%{margin-left:110%}}
+  input,textarea,select{font-family:inherit}
+  ::-webkit-scrollbar{width:7px}::-webkit-scrollbar-thumb{background:#2A4034;border-radius:8px}
+  .serif{font-family:'Fraunces',Georgia,'Times New Roman',serif}
+  :focus-visible{outline:2px solid #2E5A4C;outline-offset:2px;border-radius:6px}
+  button:focus:not(:focus-visible){outline:none}
+  @media (prefers-reduced-motion: reduce){*{animation-duration:.001ms!important;animation-iteration-count:1!important;transition:none!important}}
+  @media print{
+    .noprint{display:none!important}
+    body{background:#fff;margin:0}
+    #wrap{box-shadow:none!important;border-radius:0!important;max-width:100%!important}
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef, useCallback } = React;
+
+const LOGO_SRC = "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%232E5A4C%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%233B6F5E%22%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%3Crect%20width%3D%22100%22%20height%3D%22100%22%20rx%3D%2226%22%20fill%3D%22url%28%23g%29%22%2F%3E%3Crect%20x%3D%2230%22%20y%3D%2222%22%20width%3D%2240%22%20height%3D%2256%22%20rx%3D%227%22%20fill%3D%22%23fff%22%2F%3E%3Crect%20x%3D%2238%22%20y%3D%2234%22%20width%3D%2224%22%20height%3D%225%22%20rx%3D%222.5%22%20fill%3D%22%232E5A4C%22%2F%3E%3Crect%20x%3D%2238%22%20y%3D%2246%22%20width%3D%2224%22%20height%3D%225%22%20rx%3D%222.5%22%20fill%3D%22%23A9C2BA%22%2F%3E%3Crect%20x%3D%2238%22%20y%3D%2258%22%20width%3D%2216%22%20height%3D%225%22%20rx%3D%222.5%22%20fill%3D%22%23A9C2BA%22%2F%3E%3Cpath%20d%3D%22M70%2030%20l2.6%206.4%206.4%202.6%20-6.4%202.6%20-2.6%206.4%20-2.6%20-6.4%20-6.4%20-2.6%206.4%20-2.6%20z%22%20fill%3D%22%23C99A63%22%2F%3E%3C%2Fsvg%3E";
+
+const C = {
+  primary:"#1B3A30",secondary:"#2E5A4C",accent:"#3B6F5E",
+  bg:"#14271D",bgSec:"#1B3328",text:"#E9E7DE",textSec:"#9DB3A6",
+  success:"#10B981",border:"#284036",sidebar:"#0B1813"
+};
+
+const TEMPLATES = [
+  {id:"Marketing Digital",icon:"trending-up",desc:"Campanhas, estratégia e presença online"},
+  {id:"Tráfego Pago",icon:"target",desc:"Gestão de anúncios e performance"},
+  {id:"Social Media",icon:"megaphone",desc:"Conteúdo e gestão de redes sociais"},
+  {id:"SEO",icon:"search",desc:"Otimização e ranqueamento orgânico"},
+  {id:"Email Marketing",icon:"mail",desc:"Automação e campanhas de e-mail"},
+  {id:"Copywriting",icon:"pen-tool",desc:"Textos persuasivos e conteúdo"},
+  {id:"Marketing de Conteúdo",icon:"file-text",desc:"Estratégia e produção de conteúdo"},
+  {id:"Growth Hacking",icon:"zap",desc:"Crescimento acelerado e experimentos"},
+  {id:"Automação de Marketing",icon:"settings",desc:"Ferramentas e fluxos automáticos"},
+  {id:"Inbound Marketing",icon:"magnet",desc:"Atração e nutrição de leads"},
+  {id:"Influencer Marketing",icon:"star",desc:"Parcerias com criadores de conteúdo"},
+  {id:"Marketing de Afiliados",icon:"link",desc:"Programas e gestão de afiliados"},
+  {id:"Desenvolvimento Web",icon:"code",desc:"Sites, sistemas e aplicações"},
+  {id:"Desenvolvimento Mobile",icon:"smartphone",desc:"Apps para iOS e Android"},
+  {id:"E-commerce",icon:"shopping-cart",desc:"Lojas virtuais e vendas online"},
+  {id:"Automação de Processos",icon:"repeat",desc:"Bots, RPA e automação empresarial"},
+  {id:"Inteligência Artificial",icon:"cpu",desc:"Soluções com IA e machine learning"},
+  {id:"Cloud & Infraestrutura",icon:"cloud",desc:"Servidores, cloud e DevOps"},
+  {id:"Segurança Digital",icon:"shield",desc:"Cibersegurança e proteção de dados"},
+  {id:"Suporte de TI",icon:"tool",desc:"Manutenção e suporte técnico"},
+  {id:"Data Science",icon:"bar-chart-2",desc:"Análise de dados e business intelligence"},
+  {id:"Integração de Sistemas",icon:"git-merge",desc:"APIs, ERPs e integrações"},
+  {id:"UX / UI Design",icon:"monitor",desc:"Interfaces, protótipos e experiência"},
+  {id:"Design Gráfico",icon:"palette",desc:"Materiais visuais e peças gráficas"},
+  {id:"Branding & Identidade",icon:"gem",desc:"Marca, posicionamento e identidade"},
+  {id:"Fotografia",icon:"camera",desc:"Ensaios, produtos e eventos"},
+  {id:"Produção de Vídeo",icon:"video",desc:"Vídeos institucionais e comerciais"},
+  {id:"Edição de Vídeo",icon:"film",desc:"Edição, motion e pós-produção"},
+  {id:"Motion Graphics",icon:"play-circle",desc:"Animações e vídeos animados"},
+  {id:"Ilustração",icon:"pen-tool",desc:"Ilustrações digitais e arte"},
+  {id:"Design de Embalagem",icon:"package",desc:"Packaging e identidade de produto"},
+  {id:"Design de Interiores",icon:"home",desc:"Projetos e ambientação de espaços"},
+  {id:"Produção Musical",icon:"music",desc:"Composição, gravação e mixagem"},
+  {id:"Nutrição",icon:"heart",desc:"Consultoria e acompanhamento nutricional"},
+  {id:"Personal Trainer",icon:"activity",desc:"Treinos personalizados e acompanhamento"},
+  {id:"Psicologia",icon:"user",desc:"Atendimento e acompanhamento psicológico"},
+  {id:"Fisioterapia",icon:"thermometer",desc:"Reabilitação e tratamentos físicos"},
+  {id:"Medicina Estética",icon:"award",desc:"Procedimentos e tratamentos estéticos"},
+  {id:"Coaching de Saúde",icon:"sun",desc:"Hábitos, bem-estar e qualidade de vida"},
+  {id:"Odontologia",icon:"smile",desc:"Tratamentos e procedimentos odontológicos"},
+  {id:"Enfermagem",icon:"plus-circle",desc:"Cuidados e serviços de enfermagem"},
+  {id:"Cursos Online",icon:"book-open",desc:"Criação e venda de cursos digitais"},
+  {id:"Treinamento Corporativo",icon:"users",desc:"Capacitação e desenvolvimento de equipes"},
+  {id:"Aulas Particulares",icon:"user-check",desc:"Ensino individualizado e reforço"},
+  {id:"Coaching & Mentoria",icon:"lightbulb",desc:"Desenvolvimento e acompanhamento"},
+  {id:"Consultoria Educacional",icon:"graduation-cap",desc:"Orientação e projetos educacionais"},
+  {id:"Palestras & Workshops",icon:"mic",desc:"Eventos educativos e formativos"},
+  {id:"Tradução & Idiomas",icon:"globe",desc:"Tradução, legendagem e aulas de idiomas"},
+  {id:"Advocacia",icon:"briefcase",desc:"Serviços jurídicos e assessoria legal"},
+  {id:"Contabilidade",icon:"calculator",desc:"Serviços contábeis e fiscais"},
+  {id:"Consultoria Financeira",icon:"dollar-sign",desc:"Finanças, investimentos e planejamento"},
+  {id:"Consultoria Tributária",icon:"file-minus",desc:"Gestão fiscal e planejamento tributário"},
+  {id:"Auditoria",icon:"check-square",desc:"Auditoria contábil e de processos"},
+  {id:"Seguros",icon:"shield-check",desc:"Corretagem e consultoria de seguros"},
+  {id:"Arquitetura",icon:"layout",desc:"Projetos arquitetônicos e urbanísticos"},
+  {id:"Engenharia Civil",icon:"sliders",desc:"Projetos e laudos de engenharia"},
+  {id:"Reforma & Construção",icon:"hammer",desc:"Obras, reformas e acabamentos"},
+  {id:"Elétrica & Hidráulica",icon:"zap",desc:"Instalações elétricas e hidráulicas"},
+  {id:"Paisagismo",icon:"feather",desc:"Jardins, áreas externas e verde urbano"},
+  {id:"Marcenaria",icon:"scissors",desc:"Móveis planejados e carpintaria"},
+  {id:"Energia Solar",icon:"sun",desc:"Instalação de painéis solares"},
+  {id:"Climatização",icon:"wind",desc:"Ar-condicionado e ventilação"},
+  {id:"Consultoria",icon:"award",desc:"Estratégia e assessoria especializada"},
+  {id:"Gestão de Projetos",icon:"trello",desc:"Planejamento e execução de projetos"},
+  {id:"Recrutamento & Seleção",icon:"user-plus",desc:"Hunting e processos seletivos"},
+  {id:"Gestão de Pessoas",icon:"users",desc:"RH, cultura e desenvolvimento humano"},
+  {id:"Logística",icon:"truck",desc:"Transporte, distribuição e supply chain"},
+  {id:"Eventos Corporativos",icon:"calendar",desc:"Organização de eventos empresariais"},
+  {id:"Casamentos & Festas",icon:"gift",desc:"Planejamento e produção de festas"},
+  {id:"DJ & Música ao Vivo",icon:"headphones",desc:"Sonorização e entretenimento"},
+  {id:"Buffet & Gastronomia",icon:"coffee",desc:"Serviços gastronômicos e catering"},
+  {id:"Empresarial",icon:"briefcase",desc:"Soluções corporativas e B2B"},
+  {id:"Imobiliário",icon:"home",desc:"Compra, venda e gestão de imóveis"},
+  {id:"Pet Care",icon:"heart",desc:"Serviços e cuidados para animais"},
+  {id:"Moda & Estilo",icon:"shopping-bag",desc:"Consultoria de imagem e personal stylist"},
+  {id:"Turismo & Viagens",icon:"map",desc:"Roteiros, pacotes e experiências"},
+  {id:"Limpeza & Conservação",icon:"wind",desc:"Serviços de limpeza profissional"},
+  {id:"Segurança Patrimonial",icon:"shield",desc:"Vigilância e segurança privada"},
+  {id:"Serviços Ambientais",icon:"leaf",desc:"Meio ambiente e sustentabilidade"},
+];
+
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+const load = (k,d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch(e){ return d; } };
+const Icon = ({n,s=18,c}) => <i data-lucide={n} style={{width:s,height:s,color:c,flexShrink:0}}></i>;
+
+const card = {background:"#14271D",border:`1px solid ${C.border}`,borderRadius:20,padding:24,boxShadow:"0 4px 22px rgba(0,0,0,.30)"};
+const inp = {width:"100%",padding:"11px 13px",border:`1px solid ${C.border}`,borderRadius:10,fontSize:14.5,outline:"none",background:"#0F2118",color:"#E9E7DE",boxSizing:"border-box"};
+const lab = {display:"block",fontSize:12.5,fontWeight:600,color:C.textSec,marginBottom:5};
+const btnP = {background:`linear-gradient(135deg,${C.secondary},${C.accent})`,color:"#fff",border:"none",padding:"11px 20px",borderRadius:10,fontSize:14.5,fontWeight:700,cursor:"pointer",boxShadow:"0 4px 14px rgba(46,90,76,.3)"};
+const btnG = {background:"rgba(255,255,255,.05)",color:C.text,border:`1px solid ${C.border}`,padding:"11px 18px",borderRadius:10,fontSize:14.5,fontWeight:600,cursor:"pointer"};
+const btnWA = {background:"#25D366",color:"#fff",border:"none",padding:"11px 20px",borderRadius:10,fontSize:14.5,fontWeight:600,cursor:"pointer"};
+const rowG = {display:"grid",gridTemplateColumns:"1fr 1fr",gap:14};
+
+function App(){
+  const [view,setView] = useState("dashboard");
+  const [proposals,setProposals] = useState(()=>load("propoai_proposals",[]));
+  const [settings,setSettings] = useState(()=>load("propoai_settings",{companyName:"Sua Empresa",logo:"",brandColor:C.primary,email:"",phone:"",whatsapp:""}));
+  const [current,setCurrent] = useState(null);
+  const [menuOpen,setMenuOpen] = useState(false);
+  const isMobile = window.innerWidth < 860;
+
+  useEffect(()=>{ if(window.lucide) window.lucide.createIcons(); });
+  useEffect(()=>{ try{ localStorage.setItem("propoai_proposals",JSON.stringify(proposals)); }catch(e){} },[proposals]);
+  useEffect(()=>{ try{ localStorage.setItem("propoai_settings",JSON.stringify(settings)); }catch(e){} },[settings]);
+
+  const saveProposal = (p) => { setProposals(prev => prev.some(x=>x.id===p.id) ? prev.map(x=>x.id===p.id?p:x) : [p,...prev]); setCurrent(p); };
+  const delProposal = (id) => setProposals(prev=>prev.filter(x=>x.id!==id));
+  const openView = (p,track) => { if(track){ const up={...p,views:(p.views||0)+1,lastViewed:Date.now()}; setProposals(prev=>prev.map(x=>x.id===p.id?up:x)); setCurrent(up); } else setCurrent(p); };
+
+  const nav = [
+    {id:"dashboard",label:"Dashboard",icon:"layout-dashboard"},
+    {id:"new",label:"Nova Proposta",icon:"plus-circle"},
+    {id:"proposals",label:"Minhas Propostas",icon:"folder-open"},
+    {id:"templates",label:"Templates",icon:"layout-template"},
+    {id:"settings",label:"Configurações",icon:"settings"},
+  ];
+
+  if(view==="view" && current) return <ViewDoc proposal={current} settings={settings} back={()=>setView("proposals")} publish={saveProposal} goSettings={()=>setView("settings")}/>;
+
+  return (
+    <div style={{display:"flex",minHeight:"100vh"}}>
+      {menuOpen && <div className="noprint" onClick={()=>setMenuOpen(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:40}}/>}
+
+      <aside className="noprint" style={{
+        width:258,background:C.sidebar,padding:"20px 12px",
+        position:isMobile?"fixed":"sticky",top:0,height:"100vh",
+        flexShrink:0,display:"flex",flexDirection:"column",zIndex:isMobile?41:1,
+        transform:isMobile?(menuOpen?"translateX(0)":"translateX(-110%)"):"translateX(0)",
+        transition:"transform .25s",
+        boxShadow:isMobile&&menuOpen?"4px 0 40px rgba(0,0,0,.4)":"none"
+      }}>
+        <div style={{display:"flex",alignItems:"center",gap:10,padding:"4px 8px",marginBottom:32}}>
+          <img src={LOGO_SRC} style={{width:42,height:42,borderRadius:11,objectFit:"cover",boxShadow:"0 4px 12px rgba(0,0,0,.3)"}}/>
+          <div>
+            <div style={{fontSize:17,fontWeight:800,color:"#fff",letterSpacing:"-0.3px",lineHeight:1.1}}>Proposta<span style={{color:"#A6C0B4"}}>IA</span></div>
+            <div style={{fontSize:11,color:"rgba(255,255,255,.4)",fontWeight:500}}>Propostas com IA</div>
+          </div>
+        </div>
+
+        <div style={{fontSize:10,fontWeight:700,color:"rgba(255,255,255,.3)",letterSpacing:".1em",margin:"0 8px 10px",textTransform:"uppercase"}}>Menu</div>
+
+        <nav style={{display:"flex",flexDirection:"column",gap:3}}>
+          {nav.map(it=>{
+            const a = view===it.id||(view==="editor"&&it.id==="proposals");
+            return <button key={it.id} onClick={()=>{setView(it.id);setMenuOpen(false);}} className="hov"
+              style={{display:"flex",alignItems:"center",gap:11,padding:"11px 12px",borderRadius:12,border:"none",
+                cursor:"pointer",background:a?"rgba(255,255,255,.14)":"transparent",
+                color:a?"#fff":"rgba(255,255,255,.55)",fontWeight:a?700:500,fontSize:14,textAlign:"left",
+                boxShadow:a?"inset 0 0 0 1px rgba(255,255,255,.1)":"none"}}>
+              <div style={{width:32,height:32,borderRadius:9,
+                background:a?`linear-gradient(135deg,${C.secondary},${C.accent})`:"rgba(255,255,255,.07)",
+                display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,
+                boxShadow:a?"0 3px 10px rgba(46,90,76,.4)":"none"}}>
+                <Icon n={it.icon} c={a?"#fff":"rgba(255,255,255,.45)"} s={15}/>
+              </div>
+              {it.label}
+            </button>;
+          })}
+        </nav>
+
+        <div style={{marginTop:"auto",padding:"0 2px"}}>
+          <button onClick={()=>{setView("new");setMenuOpen(false);}} className="hov"
+            style={{width:"100%",background:`linear-gradient(135deg,${C.secondary},${C.accent})`,color:"#fff",border:"none",
+              padding:"13px",borderRadius:12,fontSize:14.5,fontWeight:700,cursor:"pointer",
+              display:"flex",alignItems:"center",justifyContent:"center",gap:8,
+              boxShadow:"0 6px 20px rgba(46,90,76,.45)"}}>
+            <Icon n="plus" c="#fff" s={17}/> Nova Proposta
+          </button>
+        </div>
+      </aside>
+
+      <div style={{flex:1,minWidth:0,display:"flex",flexDirection:"column"}}>
+        <header className="noprint" style={{background:"#0B1813",borderBottom:`1px solid ${C.border}`,
+          padding:"13px clamp(16px,4vw,36px)",display:"flex",alignItems:"center",
+          justifyContent:"space-between",position:"sticky",top:0,zIndex:30,
+          boxShadow:"0 2px 16px rgba(0,0,0,.35)"}}>
+          <div style={{display:"flex",alignItems:"center",gap:12}}>
+            {isMobile && <button onClick={()=>setMenuOpen(true)} className="hov"
+              style={{display:"inline-flex",alignItems:"center",gap:7,background:C.sidebar,color:"#fff",
+                border:"none",borderRadius:10,padding:"9px 14px",cursor:"pointer",fontWeight:700,fontSize:14}}>
+              <Icon n="menu" s={20} c="#fff"/> Menu
+            </button>}
+            <strong style={{fontSize:19,color:C.text,letterSpacing:"-0.3px",fontWeight:800}}>
+              {nav.find(n=>n.id===view)?.label || "Editor"}
+            </strong>
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <span style={{fontSize:13,color:C.textSec,fontWeight:600}}>{settings.companyName}</span>
+            <div style={{width:36,height:36,borderRadius:"50%",overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,.12)"}}>
+              <img src={settings.logo||LOGO_SRC} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+            </div>
+          </div>
+        </header>
+        <main style={{flex:1,padding:"28px clamp(16px,4vw,40px)"}}>
+          {view==="dashboard" && <Dashboard proposals={proposals} go={setView} open={p=>{setCurrent(p);setView("editor");}}/>}
+          {view==="new" && <NewProposal settings={settings} onCreated={p=>{saveProposal(p);setView("editor");}}/>}
+          {view==="proposals" && <MyProposals proposals={proposals} edit={p=>{setCurrent(p);setView("editor");}} viewDoc={p=>{openView(p,false);setView("view");}} del={delProposal} go={setView}/>}
+          {view==="templates" && <Templates go={setView}/>}
+          {view==="settings" && <Settings settings={settings} setSettings={setSettings}/>}
+          {view==="editor" && current && <Editor proposal={current} settings={settings} save={saveProposal} viewDoc={p=>{saveProposal(p);setCurrent(p);setView("view");}} back={()=>setView("proposals")}/>}
+        </main>
+      </div>
+    </div>
+  );
+}
+
+function Dashboard({proposals,go,open}){
+  const total=proposals.length, viewed=proposals.filter(p=>(p.views||0)>0).length;
+  const approved=proposals.filter(p=>p.status==="approved").length;
+  const rate=total?Math.round(approved/total*100):0;
+  const stats=[
+    {label:"Total de propostas",val:total,icon:"file-text",color:C.secondary},
+    {label:"Visualizadas",val:viewed,icon:"eye",color:"#8B5CF6"},
+    {label:"Aprovadas",val:approved,icon:"check-circle",color:"#10B981"},
+    {label:"Taxa de aprovação",val:rate+"%",icon:"trending-up",color:C.success}
+  ];
+  const recent=[...proposals].sort((a,b)=>b.createdAt-a.createdAt).slice(0,6);
+  return <div className="fu" style={{maxWidth:1000}}>
+    {total===0 && <div style={{...card,padding:"36px",marginBottom:24,
+      background:`linear-gradient(135deg,#0E2019 0%,#1B3A30 60%,#2E5A4C 100%)`,
+      color:"#fff",border:"none",boxShadow:"0 16px 48px rgba(14,32,25,.4)",position:"relative",overflow:"hidden"}}>
+      <div style={{position:"absolute",top:-40,right:-40,width:220,height:220,borderRadius:"50%",background:"rgba(255,255,255,.04)",pointerEvents:"none"}}/>
+      <div style={{position:"absolute",bottom:-30,right:80,width:140,height:140,borderRadius:"50%",background:"rgba(255,255,255,.03)",pointerEvents:"none"}}/>
+      <h2 style={{margin:"0 0 10px",fontSize:24,fontWeight:800,position:"relative"}}>Bem-vindo ao PropostaIA 👋</h2>
+      <p style={{margin:0,opacity:.88,fontSize:15.5,lineHeight:1.65,maxWidth:560,position:"relative"}}>
+        Transforme informações simples em propostas comerciais profissionais em minutos. A IA escreve, você personaliza e impressiona seus clientes.
+      </p>
+      <button onClick={()=>go("new")} className="hov" style={{marginTop:22,background:"#fff",color:C.primary,border:"none",padding:"13px 24px",borderRadius:11,fontWeight:800,cursor:"pointer",display:"inline-flex",alignItems:"center",gap:8,boxShadow:"0 6px 20px rgba(0,0,0,.2)",position:"relative"}}>
+        <Icon n="sparkles" c={C.primary} s={17}/> Criar minha primeira proposta
+      </button>
+    </div>}
+
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:16,marginBottom:24}}>
+      {stats.map((s,i)=><div key={i} className="hov" style={{...card,padding:22,position:"relative",overflow:"hidden"}}>
+        <div style={{position:"absolute",top:-15,right:-15,width:90,height:90,borderRadius:"50%",background:`${s.color}08`,pointerEvents:"none"}}/>
+        <div style={{width:46,height:46,borderRadius:14,
+          background:`linear-gradient(135deg,${s.color}22,${s.color}11)`,
+          border:`1px solid ${s.color}20`,
+          display:"flex",alignItems:"center",justifyContent:"center"}}>
+          <Icon n={s.icon} c={s.color} s={21}/>
+        </div>
+        <div style={{fontSize:34,fontWeight:900,marginTop:14,letterSpacing:"-2px"}}>{s.val}</div>
+        <div style={{color:C.textSec,fontSize:13,marginTop:3,fontWeight:500}}>{s.label}</div>
+      </div>)}
+    </div>
+
+    <div style={{...card,padding:0,overflow:"hidden"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"18px 24px",borderBottom:`1px solid ${C.border}`}}>
+        <strong style={{fontSize:15.5,fontWeight:800}}>Propostas recentes</strong>
+        <button onClick={()=>go("proposals")} style={{background:"none",border:"none",color:C.secondary,fontWeight:700,fontSize:13.5,cursor:"pointer"}}>Ver todas →</button>
+      </div>
+      {recent.length===0
+        ? <div style={{padding:"52px 20px",textAlign:"center",color:C.textSec}}>
+            Você ainda não criou propostas.<br/>
+            <button onClick={()=>go("new")} className="hov" style={{...btnP,marginTop:16}}>Criar primeira proposta</button>
+          </div>
+        : recent.map(p=><div key={p.id} onClick={()=>open(p)} className="hov"
+            style={{display:"flex",justifyContent:"space-between",alignItems:"center",
+              padding:"14px 24px",borderBottom:`1px solid ${C.border}`,cursor:"pointer"}}>
+            <div style={{display:"flex",alignItems:"center",gap:13}}>
+              <div style={{width:40,height:40,borderRadius:11,
+                background:`linear-gradient(135deg,${C.primary}22,${C.accent}22)`,
+                border:`1px solid ${C.border}`,
+                display:"flex",alignItems:"center",justifyContent:"center"}}>
+                <Icon n="file-text" c={C.secondary} s={18}/>
+              </div>
+              <div>
+                <div style={{fontWeight:700,fontSize:14.5}}>{p.content?.coverTitle||p.service}</div>
+                <div style={{color:C.textSec,fontSize:12.5}}>{p.clientName||"—"} · {new Date(p.createdAt).toLocaleDateString("pt-BR")}</div>
+              </div>
+            </div>
+            <Badge s={p.status} v={p.views}/>
+          </div>)}
+    </div>
+  </div>;
+}
+
+function Badge({s,v}){
+  const m={draft:["Rascunho",C.textSec,C.bgSec],sent:["Enviada",C.secondary,`${C.accent}18`],approved:["Aprovada",C.success,`${C.success}14`]};
+  const x=m[s]||m.draft;
+  return <div style={{display:"flex",alignItems:"center",gap:10}}>
+    {v>0 && <span style={{fontSize:12,color:C.textSec,display:"inline-flex",alignItems:"center",gap:3}}><Icon n="eye" s={13}/> {v}</span>}
+    <span style={{padding:"5px 12px",borderRadius:100,fontSize:12,fontWeight:700,color:x[1],background:x[2]}}>{x[0]}</span>
+  </div>;
+}
+
+function NewProposal({settings,onCreated}){
+  const [f,setF] = useState({clientName:"",company:"",template:"Marketing Digital",service:"",objective:"",scope:"",deadline:"",value:"",notes:""});
+  const [loading,setLoading] = useState(false);
+  const [err,setErr] = useState("");
+  const set = k => e => setF({...f,[k]:e.target.value});
+
+  const gen = async() => {
+    if(!f.service.trim()){ setErr("Informe ao menos o serviço para gerar a proposta."); return; }
+    setErr(""); setLoading(true);
+    try{
+      const res = await fetch("/.netlify/functions/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...f,companyName:settings.companyName})});
+      if(!res.ok) throw new Error();
+      const data = await res.json();
+      if(!data.content) throw new Error();
+      onCreated({id:uid(),...f,companyName:settings.companyName,createdAt:Date.now(),views:0,status:"draft",content:data.content});
+    }catch(e){
+      setLoading(false);
+      setErr("Não foi possível gerar agora. Verifique se o app está publicado no Netlify com a chave da API configurada.");
+    }
+  };
+
+  if(loading) return (
+    <div className="fu" style={{textAlign:"center",marginTop:70}}>
+      <div className="spin" style={{margin:"0 auto"}}/>
+      <h3 style={{marginTop:22,fontSize:20,fontWeight:800}}>Gerando sua proposta com IA…</h3>
+      <p style={{color:C.textSec,fontSize:15}}>Estamos redigindo um documento profissional para você.<br/>Leva só alguns segundos.</p>
+      <div style={{height:4,background:C.border,borderRadius:100,overflow:"hidden",maxWidth:260,margin:"20px auto 0"}}>
+        <div style={{height:"100%",width:"40%",background:`linear-gradient(90deg,${C.secondary},${C.accent})`,borderRadius:100,animation:"sl 1.5s ease infinite"}}/>
+      </div>
+    </div>
+  );
+
+  return <div className="fu" style={{maxWidth:720}}>
+    <div style={{marginBottom:24}}>
+      <h2 style={{margin:"0 0 6px",fontSize:23,fontWeight:800,letterSpacing:"-0.5px"}}>Crie uma proposta profissional</h2>
+      <p style={{color:C.textSec,margin:0,fontSize:14.5,lineHeight:1.65}}>Preencha as informações e a IA monta tudo em 30 segundos.</p>
+    </div>
+    <div style={{...card,padding:28}}>
+      <Field l="Categoria / Template">
+        <select value={f.template} onChange={set("template")} style={inp}>
+          {TEMPLATES.map(t=><option key={t.id}>{t.id}</option>)}
+        </select>
+      </Field>
+      <div style={rowG}>
+        <Field l="Nome do Cliente"><input value={f.clientName} onChange={set("clientName")} style={inp} placeholder="Ex.: João Silva"/></Field>
+        <Field l="Empresa"><input value={f.company} onChange={set("company")} style={inp} placeholder="Ex.: Acme Ltda"/></Field>
+      </div>
+      <Field l="Serviço *"><input value={f.service} onChange={set("service")} style={inp} placeholder="Ex.: Gestão de tráfego pago para e-commerce"/></Field>
+      <Field l="Objetivo"><input value={f.objective} onChange={set("objective")} style={inp} placeholder="Ex.: Aumentar vendas online em 40%"/></Field>
+      <Field l="Escopo"><textarea value={f.scope} onChange={set("scope")} rows={3} style={{...inp,resize:"vertical"}} placeholder="Descreva o que será entregue..."/></Field>
+      <div style={rowG}>
+        <Field l="Prazo"><input value={f.deadline} onChange={set("deadline")} style={inp} placeholder="Ex.: 60 dias"/></Field>
+        <Field l="Valor do Projeto"><input value={f.value} onChange={set("value")} style={inp} placeholder="Ex.: R$ 5.000/mês"/></Field>
+      </div>
+      <Field l="Observações para a IA"><textarea value={f.notes} onChange={set("notes")} rows={2} style={{...inp,resize:"vertical"}} placeholder="Informações extras, tom, destaques..."/></Field>
+      {err && <div style={{background:"#FEF2F2",color:"#DC2626",padding:"12px 14px",borderRadius:10,fontSize:13.5,marginBottom:14,display:"flex",gap:8}}>
+        <Icon n="alert-circle" c="#DC2626" s={16}/> {err}
+      </div>}
+      <button onClick={gen} className="hov" style={{...btnP,width:"100%",padding:"15px",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center",gap:9}}>
+        <Icon n="sparkles" c="#fff" s={19}/> Gerar Proposta com IA
+      </button>
+    </div>
+  </div>;
+}
+
+function Field({l,children}){ return <div style={{marginBottom:16}}><label style={{display:"block",fontSize:13,fontWeight:600,color:C.textSec,marginBottom:6}}>{l}</label>{children}</div>; }
+
+function MyProposals({proposals,edit,viewDoc,del,go}){
+  const [q,setQ] = useState("");
+  const list = proposals.filter(p=>`${p.clientName} ${p.company} ${p.service}`.toLowerCase().includes(q.toLowerCase())).sort((a,b)=>b.createdAt-a.createdAt);
+  return <div className="fu" style={{maxWidth:1000}}>
+    <div style={{display:"flex",gap:12,marginBottom:22,flexWrap:"wrap"}}>
+      <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Buscar proposta..." style={{...inp,maxWidth:320}}/>
+      <button onClick={()=>go("new")} className="hov" style={{...btnP,display:"inline-flex",alignItems:"center",gap:7}}>
+        <Icon n="plus" c="#fff" s={17}/> Nova
+      </button>
+    </div>
+    {list.length===0
+      ? <div style={{...card,padding:"60px 24px",textAlign:"center",color:C.textSec}}>
+          <div style={{width:60,height:60,borderRadius:16,background:C.bgSec,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 16px"}}>
+            <Icon n="file-text" c={C.textSec} s={28}/>
+          </div>
+          <strong style={{color:C.text,fontSize:17,display:"block",marginBottom:8}}>Nenhuma proposta ainda</strong>
+          Crie sua primeira proposta profissional agora.
+          <br/><button onClick={()=>go("new")} className="hov" style={{...btnP,marginTop:18}}>Criar primeira proposta</button>
+        </div>
+      : <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(290px,1fr))",gap:16}}>
+          {list.map(p=><div key={p.id} className="hov" style={{...card,padding:22,display:"flex",flexDirection:"column"}}>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:14}}>
+              <div style={{width:42,height:42,borderRadius:12,
+                background:`linear-gradient(135deg,${C.primary},${C.accent})`,
+                display:"flex",alignItems:"center",justifyContent:"center",
+                boxShadow:"0 4px 12px rgba(46,90,76,.3)"}}>
+                <Icon n="file-text" c="#fff" s={20}/>
+              </div>
+              <Badge s={p.status} v={p.views}/>
+            </div>
+            <strong style={{fontSize:15,fontWeight:700,marginBottom:4}}>{p.content?.coverTitle||p.service}</strong>
+            <div style={{color:C.textSec,fontSize:13,marginBottom:16}}>{p.clientName||"Sem cliente"} · {new Date(p.createdAt).toLocaleDateString("pt-BR")}</div>
+            <div style={{display:"flex",gap:8,marginTop:"auto"}}>
+              <button onClick={()=>edit(p)} className="hov" style={{...btnG,flex:1,fontSize:13,padding:"9px 0"}}>Editar</button>
+              <button onClick={()=>viewDoc(p)} className="hov" style={{...btnP,flex:1,fontSize:13,padding:"9px 0"}}>Ver</button>
+              <button onClick={()=>{ if(confirm("Excluir esta proposta?")) del(p.id); }} className="hov" style={{...btnG,padding:"9px 11px",color:"#DC2626",borderColor:"#FECACA"}}>
+                <Icon n="trash-2" s={15} c="#DC2626"/>
+              </button>
+            </div>
+          </div>)}
+        </div>}
+  </div>;
+}
+
+function Templates({go}){
+  return <div className="fu" style={{maxWidth:1000}}>
+    <div style={{marginBottom:24}}>
+      <h2 style={{margin:"0 0 6px",fontSize:23,fontWeight:800,letterSpacing:"-0.5px"}}>84 Templates disponíveis</h2>
+      <p style={{color:C.textSec,margin:0,fontSize:14.5}}>Escolha um ponto de partida. A IA adapta o conteúdo ao seu serviço.</p>
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:14}}>
+      {TEMPLATES.map(t=><div key={t.id} onClick={()=>go("new")} className="hov"
+        style={{...card,padding:20,cursor:"pointer",borderLeft:`3px solid transparent`,transition:"all .2s"}}
+        onMouseEnter={e=>{e.currentTarget.style.borderLeftColor=C.accent;e.currentTarget.style.transform="translateY(-3px)"}}
+        onMouseLeave={e=>{e.currentTarget.style.borderLeftColor="transparent";e.currentTarget.style.transform="translateY(0)"}}>
+        <div style={{width:40,height:40,borderRadius:11,background:`linear-gradient(135deg,${C.accent}22,${C.secondary}11)`,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:12}}>
+          <Icon n={t.icon} c={C.secondary} s={19}/>
+        </div>
+        <h3 style={{fontSize:14.5,fontWeight:700,margin:"0 0 4px"}}>{t.id}</h3>
+        <p style={{color:C.textSec,fontSize:13,lineHeight:1.5,margin:"0 0 10px"}}>{t.desc}</p>
+        <span style={{color:C.secondary,fontWeight:700,fontSize:13}}>Usar template →</span>
+      </div>)}
+    </div>
+  </div>;
+}
+
+function Settings({settings,setSettings}){
+  const [s,setS] = useState(settings);
+  const [ok,setOk] = useState(false);
+  const fr = useRef();
+  const logo = e => { const file=e.target.files?.[0]; if(!file)return; const r=new FileReader(); r.onload=()=>setS({...s,logo:r.result}); r.readAsDataURL(file); };
+  const brandPending = !s.logo && (!s.companyName || s.companyName.trim()==="" || s.companyName.trim().toLowerCase()==="sua empresa");
+  return <div className="fu" style={{maxWidth:560}}>
+    {brandPending && <div style={{background:"#FFF7ED",border:"1px solid #FED7AA",borderRadius:14,padding:"16px 18px",marginBottom:20,display:"flex",alignItems:"flex-start",gap:12}}>
+      <span style={{fontSize:20}}>⚠️</span>
+      <div>
+        <div style={{fontSize:14.5,color:"#92400E",fontWeight:800,marginBottom:3}}>Configure sua marca antes de enviar propostas</div>
+        <div style={{fontSize:13.5,color:"#B45309",lineHeight:1.6}}>Envie seu logo e preencha o nome da sua empresa abaixo. Sem isso, as propostas saem com "Sua Empresa" no lugar da sua marca — e o cliente percebe.</div>
+      </div>
+    </div>}
+    <div style={{...card,padding:28,marginBottom:20}}>
+      <h3 style={{marginTop:0,fontSize:17,fontWeight:800}}>Identidade visual</h3>
+      <p style={{color:C.textSec,fontSize:14,marginTop:0,marginBottom:22}}>Personalize a marca exibida nas suas propostas.</p>
+      <Field l="Logo">
+        <div style={{display:"flex",alignItems:"center",gap:14}}>
+          <div style={{width:64,height:64,borderRadius:14,background:C.bgSec,border:`1px solid ${C.border}`,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,.06)"}}>
+            {s.logo?<img src={s.logo} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<Icon n="image" c={C.textSec} s={26}/>}
+          </div>
+          <button onClick={()=>fr.current.click()} style={btnG}>Enviar logo</button>
+          {s.logo && <button onClick={()=>setS({...s,logo:""})} style={{...btnG,color:"#DC2626",borderColor:"#FECACA"}}>Remover</button>}
+          <input ref={fr} type="file" accept="image/*" onChange={logo} style={{display:"none"}}/>
+        </div>
+      </Field>
+      <Field l="Nome da empresa"><input value={s.companyName} onChange={e=>setS({...s,companyName:e.target.value})} style={inp} placeholder="Digite o nome da sua empresa"/></Field>
+      <Field l="Cor da marca">
+        <div style={{display:"flex",gap:10,alignItems:"center"}}>
+          <input type="color" value={s.brandColor} onChange={e=>setS({...s,brandColor:e.target.value})} style={{width:50,height:40,border:`1px solid ${C.border}`,borderRadius:10,padding:3,cursor:"pointer"}}/>
+          <input value={s.brandColor} onChange={e=>setS({...s,brandColor:e.target.value})} style={{...inp,maxWidth:150}}/>
+        </div>
+      </Field>
+      <div style={rowG}>
+        <Field l="E-mail"><input value={s.email||""} onChange={e=>setS({...s,email:e.target.value})} style={inp} placeholder="contato@empresa.com"/></Field>
+        <Field l="Telefone"><input value={s.phone||""} onChange={e=>setS({...s,phone:e.target.value})} style={inp} placeholder="(11) 99999-9999"/></Field>
+      </div>
+      <button onClick={()=>{setSettings(s);setOk(true);setTimeout(()=>setOk(false),1800);}} className="hov" style={{...btnP,display:"inline-flex",alignItems:"center",gap:7}}>
+        {ok?<><Icon n="check" c="#fff" s={16}/> Salvo!</>:"Salvar configurações"}
+      </button>
+    </div>
+    <div style={{...card,padding:28}}>
+      <h3 style={{marginTop:0,fontSize:17,fontWeight:800}}>💾 Backup das propostas</h3>
+      <p style={{color:C.textSec,fontSize:14,marginTop:0,marginBottom:22,lineHeight:1.65}}>Exporte um backup para não perder suas propostas se limpar o navegador.</p>
+      <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
+        <button onClick={()=>{
+          const dados={propostas:JSON.parse(localStorage.getItem("propoai_proposals")||"[]"),configuracoes:JSON.parse(localStorage.getItem("propoai_settings")||"{}"),exportadoEm:new Date().toLocaleString("pt-BR")};
+          const blob=new Blob([JSON.stringify(dados,null,2)],{type:"application/json"});
+          const url=URL.createObjectURL(blob);
+          const a=document.createElement("a");a.href=url;a.download=`propoia-backup-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(url);
+        }} className="hov" style={{...btnP,display:"inline-flex",alignItems:"center",gap:7}}>
+          <Icon n="download" c="#fff" s={16}/> Exportar backup
+        </button>
+        <button onClick={()=>document.getElementById("importFile").click()} className="hov" style={{...btnG,display:"inline-flex",alignItems:"center",gap:7}}>
+          <Icon n="upload" s={16}/> Importar backup
+        </button>
+        <input id="importFile" type="file" accept=".json" style={{display:"none"}} onChange={e=>{
+          const file=e.target.files?.[0]; if(!file)return;
+          const r=new FileReader();
+          r.onload=()=>{ try{ const dados=JSON.parse(r.result); if(dados.propostas)localStorage.setItem("propoai_proposals",JSON.stringify(dados.propostas)); if(dados.configuracoes)localStorage.setItem("propoai_settings",JSON.stringify(dados.configuracoes)); alert("Backup importado! Recarregue a página."); }catch{ alert("Arquivo inválido."); } };
+          r.readAsText(file); e.target.value="";
+        }}/>
+      </div>
+      <p style={{color:C.textSec,fontSize:12.5,marginTop:14,marginBottom:0}}>💡 Exporte um backup toda semana para garantir que suas propostas estão seguras.</p>
+    </div>
+  </div>;
+}
+
+function Editor({proposal,settings,save,viewDoc,back}){
+  const [p,setP] = useState(proposal);
+  useEffect(()=>setP(proposal),[proposal.id]);
+  const c = p.content||{};
+  const setC = (k,v) => setP({...p,content:{...p.content,[k]:v}});
+  const [ok,setOk] = useState(false);
+  return <div className="fu" style={{maxWidth:1100}}>
+    <div style={{display:"flex",justifyContent:"space-between",marginBottom:18,flexWrap:"wrap",gap:10}}>
+      <button onClick={back} style={{...btnG,display:"inline-flex",alignItems:"center",gap:6}}><Icon n="chevron-left" s={16}/> Voltar</button>
+      <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+        <select value={p.status} onChange={e=>setP({...p,status:e.target.value})} style={{...inp,maxWidth:140,padding:"9px 12px"}}>
+          <option value="draft">Rascunho</option><option value="sent">Enviada</option><option value="approved">Aprovada</option>
+        </select>
+        <button onClick={()=>{save(p);setOk(true);setTimeout(()=>setOk(false),1600);}} className="hov" style={{...btnG,display:"inline-flex",alignItems:"center",gap:6}}>
+          {ok?<><Icon n="check" s={15}/> Salvo</>:"Salvar"}
+        </button>
+        <button onClick={()=>viewDoc(p)} className="hov" style={{...btnP,display:"inline-flex",alignItems:"center",gap:7}}>
+          <Icon n="eye" c="#fff" s={16}/> Ver / Compartilhar
+        </button>
+      </div>
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1.1fr)",gap:18,alignItems:"start"}}>
+      <div style={{...card,padding:24}}>
+        <h4 style={{marginTop:0,fontSize:15,fontWeight:800}}>Editar conteúdo</h4>
+        <EA l="Título" v={c.coverTitle} on={v=>setC("coverTitle",v)}/>
+        <EF l="Subtítulo" v={c.coverSubtitle} on={v=>setC("coverSubtitle",v)}/>
+        <EA l="Apresentação" v={c.presentation} on={v=>setC("presentation",v)}/>
+        <EL l="Objetivos" items={c.objectives} on={v=>setC("objectives",v)}/>
+        <EL l="Escopo" items={c.scope} on={v=>setC("scope",v)}/>
+        <EF l="Introdução do Investimento" v={c.investmentIntro} on={v=>setC("investmentIntro",v)}/>
+        <EF l="Investimento total" v={c.investmentTotal} on={v=>setC("investmentTotal",v)}/>
+        <EL l="Benefícios" items={c.benefits} on={v=>setC("benefits",v)}/>
+        <EL l="Diferenciais" items={c.differentials} on={v=>setC("differentials",v)}/>
+        <EL l="Próximos passos" items={c.nextSteps} on={v=>setC("nextSteps",v)}/>
+        <EA l="Encerramento" v={c.closing} on={v=>setC("closing",v)}/>
+      </div>
+      <div style={{...card,padding:0,overflow:"hidden",position:"sticky",top:88}}>
+        <div style={{padding:"12px 18px",borderBottom:`1px solid ${C.border}`,fontSize:13,fontWeight:700,color:C.textSec}}>Pré-visualização</div>
+        <div style={{maxHeight:"70vh",overflow:"auto"}}><Doc proposal={p} settings={settings} compact/></div>
+      </div>
+    </div>
+  </div>;
+}
+
+function EF({l,v,on}){ return <div style={{marginBottom:13}}><label style={lab}>{l}</label><input value={v||""} onChange={e=>on(e.target.value)} style={inp}/></div>; }
+function EA({l,v,on}){ return <div style={{marginBottom:13}}><label style={lab}>{l}</label><textarea value={v||""} onChange={e=>on(e.target.value)} rows={3} style={{...inp,resize:"vertical"}}/></div>; }
+function EL({l,items=[],on}){
+  const u=(i,v)=>{const a=[...(items||[])];a[i]=v;on(a);};
+  return <div style={{marginBottom:13}}>
+    <label style={lab}>{l}</label>
+    {(items||[]).map((it,i)=><div key={i} style={{display:"flex",gap:6,marginBottom:6}}>
+      <input value={it} onChange={e=>u(i,e.target.value)} style={{...inp,padding:"8px 11px",fontSize:13.5}}/>
+      <button onClick={()=>on(items.filter((_,x)=>x!==i))} style={{...btnG,padding:"0 10px",color:"#DC2626",borderColor:"#FECACA"}}><Icon n="x" s={14} c="#DC2626"/></button>
+    </div>)}
+    <button onClick={()=>on([...(items||[]),""])} style={{background:"none",border:"none",color:C.secondary,fontSize:13,fontWeight:700,cursor:"pointer"}}>+ Adicionar</button>
+  </div>;
+}
+
+function ViewDoc({proposal,settings,back,goSettings}){
+  const [share,setShare] = useState(false);
+  const [copied,setCopied] = useState(false);
+  const [pdfLoading,setPdfLoading] = useState(false);
+  const link = `${window.location.origin}${window.location.pathname}#proposta-${proposal.id}`;
+  const copy = () => { navigator.clipboard?.writeText(link).catch(()=>{}); setCopied(true); setTimeout(()=>setCopied(false),1800); };
+
+  const brandReady = !!settings.logo || (!!settings.companyName && settings.companyName.trim()!=="" && settings.companyName.trim().toLowerCase()!=="sua empresa");
+
+  const fileName = () => {
+    const base = String(proposal.content?.coverTitle || proposal.service || "proposta");
+    const slug = base.normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-zA-Z0-9]+/g,"-").replace(/^-+|-+$/g,"").toLowerCase().slice(0,60) || "proposta";
+    return `${slug}.pdf`;
+  };
+
+  const downloadPDF = async () => {
+    if(!brandReady){ goSettings(); return; }
+    const el = document.getElementById("wrap");
+    if(!el || !window.html2pdf){ window.print(); return; }
+    setPdfLoading(true);
+    const prevRadius = el.style.borderRadius, prevShadow = el.style.boxShadow;
+    el.style.borderRadius = "0"; el.style.boxShadow = "none";
+    try{
+      await window.html2pdf().set({
+        margin:0,
+        filename:fileName(),
+        image:{type:"jpeg",quality:0.98},
+        html2canvas:{scale:2,useCORS:true,backgroundColor:"#ffffff",scrollY:0},
+        jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},
+        pagebreak:{mode:["avoid-all","css","legacy"]}
+      }).from(el).save();
+    }catch(e){ window.print(); }
+    finally{ el.style.borderRadius = prevRadius; el.style.boxShadow = prevShadow; setPdfLoading(false); }
+  };
+
+  const pdfBtnStyle = !brandReady
+    ? {background:"#fff",color:"#B45309",border:"1px solid #FCD34D",padding:"11px 20px",borderRadius:10,fontSize:14.5,fontWeight:700,cursor:"pointer"}
+    : {...btnP,opacity:pdfLoading?.7:1,cursor:pdfLoading?"default":"pointer"};
+  const pdfLabel = pdfLoading ? "Gerando…" : (brandReady ? "Baixar PDF" : "Configurar marca");
+  const pdfIcon = brandReady ? "download" : "settings";
+
+  return <div style={{padding:"20px clamp(16px,4vw,36px)"}}>
+    {pdfLoading && <div className="noprint" style={{position:"fixed",inset:0,background:"rgba(11,27,63,.6)",backdropFilter:"blur(3px)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",zIndex:200,gap:16}}>
+      <div className="spin" style={{borderColor:"rgba(255,255,255,.3)",borderTopColor:"#fff"}}/>
+      <div style={{color:"#fff",fontWeight:700,fontSize:15}}>Gerando seu PDF…</div>
+    </div>}
+
+    <div className="noprint" style={{display:"flex",justifyContent:"space-between",marginBottom:14,flexWrap:"wrap",gap:10,alignItems:"center"}}>
+      <button onClick={back} style={{...btnG,display:"inline-flex",alignItems:"center",gap:6}}><Icon n="chevron-left" s={16}/> Voltar</button>
+      <div style={{display:"flex",alignItems:"center",gap:8,fontSize:13,color:C.textSec}}><Icon n="eye" s={15}/> {proposal.views||0} visualizações</div>
+      <div style={{display:"flex",gap:10}}>
+        <button onClick={()=>setShare(true)} className="hov" style={{...btnG,display:"inline-flex",alignItems:"center",gap:6}}><Icon n="share-2" s={16}/> Compartilhar</button>
+        <button onClick={downloadPDF} disabled={pdfLoading} className="hov" style={{...pdfBtnStyle,display:"inline-flex",alignItems:"center",gap:7}}><Icon n={pdfIcon} c={brandReady?"#fff":"#B45309"} s={16}/> {pdfLabel}</button>
+      </div>
+    </div>
+
+    {!brandReady && <div className="noprint" style={{background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:14,padding:"15px 17px",marginBottom:18,display:"flex",alignItems:"flex-start",gap:12}}>
+      <span style={{fontSize:18,lineHeight:1.2}}>⚠️</span>
+      <div style={{flex:1}}>
+        <div style={{fontSize:14.5,color:"#991B1B",fontWeight:800,marginBottom:3}}>Configure sua marca para baixar o PDF</div>
+        <div style={{fontSize:13.5,color:"#B91C1C",lineHeight:1.55,marginBottom:11}}>Sem logo e nome da empresa, a proposta sai com "Sua Empresa" no lugar da sua marca. Leva 30 segundos e vale para todas as próximas propostas.</div>
+        <button onClick={goSettings} className="hov" style={{background:"#DC2626",color:"#fff",border:"none",padding:"10px 17px",borderRadius:10,fontSize:13.5,fontWeight:700,cursor:"pointer",display:"inline-flex",alignItems:"center",gap:7}}>
+          <Icon n="settings" c="#fff" s={15}/> Configurar minha marca
+        </button>
+      </div>
+    </div>}
+
+    {brandReady && <div className="noprint" style={{background:"#F3F1EA",border:"1px solid #CBD8D2",borderRadius:14,padding:"13px 17px",marginBottom:18,display:"flex",alignItems:"flex-start",gap:11}}>
+      <Icon n="lightbulb" c={C.secondary} s={18}/>
+      <span style={{fontSize:13.5,color:"#1B3A30",lineHeight:1.5}}><strong>Dica:</strong> baixe o PDF e envie o arquivo pelo WhatsApp ou e-mail. Passa muito mais profissional do que mandar um link.</span>
+    </div>}
+
+    <div id="wrap" style={{maxWidth:800,margin:"0 auto",background:"#fff",borderRadius:18,boxShadow:"0 12px 50px rgba(15,23,42,.13)",overflow:"hidden"}}>
+      <Doc proposal={proposal} settings={settings}/>
+    </div>
+
+    {share && <div className="noprint" onClick={()=>setShare(false)} style={{position:"fixed",inset:0,background:"rgba(11,27,63,.55)",backdropFilter:"blur(3px)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100,padding:20}}>
+      <div onClick={e=>e.stopPropagation()} style={{background:"#14271D",borderRadius:20,padding:28,maxWidth:440,width:"100%",border:"1px solid #284036",boxShadow:"0 24px 70px rgba(0,0,0,.5)"}}>
+        <h3 style={{margin:"0 0 16px",fontSize:18,fontWeight:800}}>Compartilhar proposta</h3>
+        <div style={{background:"#F3F1EA",border:"1px solid #CBD8D2",borderRadius:10,padding:"11px 14px",marginBottom:16,display:"flex",gap:9,alignItems:"flex-start"}}>
+          <Icon n="lightbulb" c={C.secondary} s={16}/>
+          <p style={{color:"#1B3A30",fontSize:13,margin:0,lineHeight:1.5}}><strong>Recomendado:</strong> baixe o PDF e envie pelo WhatsApp. Muito mais profissional.</p>
+        </div>
+        <label style={lab}>Link da proposta</label>
+        <div style={{display:"flex",gap:8,marginBottom:16}}>
+          <input readOnly value={link} style={{...inp,fontSize:12.5}}/>
+          <button onClick={copy} className="hov" style={{...btnP,whiteSpace:"nowrap",minWidth:92}}>{copied?"✓ Copiado":"Copiar"}</button>
+        </div>
+        <button onClick={()=>{ setShare(false); downloadPDF(); }} disabled={pdfLoading} className="hov" style={{...(brandReady?btnP:{background:"#fff",color:"#B45309",border:"1px solid #FCD34D",padding:"13px",borderRadius:10,fontSize:15,fontWeight:700,cursor:"pointer"}),width:"100%",marginBottom:10,display:"inline-flex",alignItems:"center",justifyContent:"center",gap:8,opacity:pdfLoading?.7:1}}>
+          <Icon n={pdfIcon} c={brandReady?"#fff":"#B45309"} s={18}/> {brandReady?"Baixar PDF para enviar":"Configurar marca primeiro"}
+        </button>
+        <div style={{background:"#F0FDF4",border:"1px solid #BBF7D0",borderRadius:10,padding:"11px 14px",marginBottom:10,fontSize:13,color:"#166534",lineHeight:1.5,display:"flex",gap:8,alignItems:"flex-start"}}>
+          <Icon n="check-circle" c="#16A34A" s={16}/> <span><strong>Enviar pelo WhatsApp:</strong> baixe o PDF, abra o WhatsApp, anexe o arquivo e envie.</span>
+        </div>
+        <button onClick={()=>setShare(false)} style={{...btnG,width:"100%",color:C.textSec,border:"none",fontSize:13}}>Fechar</button>
+      </div>
+    </div>}
+  </div>;
+}
+
+function Doc({proposal,settings,compact}){
+  const c=proposal.content||{};
+  const brand=settings.brandColor||C.primary;
+  const gold="#C39A63";
+  const pad=compact?22:56;
+  const company=settings.companyName||"Sua Empresa";
+  const fmtDate=new Date(proposal.createdAt).toLocaleDateString("pt-BR",{day:"2-digit",month:"long",year:"numeric"});
+
+  const Eyebrow=({children})=><div style={{display:"flex",alignItems:"center",gap:12,margin:compact?"26px 0 12px":"46px 0 18px"}}>
+    <span style={{width:compact?16:22,height:2,background:gold,flexShrink:0,borderRadius:2}}/>
+    <span style={{fontSize:compact?10.5:12,fontWeight:800,color:brand,letterSpacing:".14em",textTransform:"uppercase"}}>{children}</span>
+  </div>;
+  const Li=({items,mark})=><div style={{display:"flex",flexDirection:"column",gap:compact?9:12}}>{(items||[]).map((it,i)=><div key={i} style={{display:"flex",gap:12,alignItems:"flex-start"}}>{mark
+      ? <span style={{width:compact?18:22,height:compact?18:22,borderRadius:"50%",background:`${C.success}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1}}><Icon n="check" c={C.success} s={compact?12:14}/></span>
+      : <span style={{width:6,height:6,borderRadius:"50%",background:gold,marginTop:compact?7:8,flexShrink:0}}/>}
+    <span style={{fontSize:compact?13.5:15.5,color:"#334155",lineHeight:1.7}}>{it}</span></div>)}</div>;
+
+  return <div style={{background:"#fff",color:"#1A1C2E"}}>
+    <div style={{position:"relative",background:`linear-gradient(150deg,#0E2019 0%,${brand} 55%,#1B3A30 100%)`,color:"#fff",padding:`${pad}px ${pad}px ${compact?pad:pad+10}px`,overflow:"hidden"}}>
+      <div className="serif" style={{position:"absolute",top:compact?-44:-78,right:compact?-30:-50,fontSize:compact?170:300,fontWeight:900,lineHeight:1,color:"rgba(255,255,255,.05)",pointerEvents:"none",userSelect:"none"}}>{(company[0]||"P").toUpperCase()}</div>
+      <div style={{position:"relative"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:compact?26:52,gap:12}}>
+          {settings.logo
+            ? <img src={settings.logo} style={{height:compact?26:38,maxWidth:compact?130:210,objectFit:"contain",borderRadius:7,background:"rgba(255,255,255,.96)",padding:"5px 9px"}}/>
+            : <strong style={{fontSize:compact?15:19,letterSpacing:"-.2px"}}>{company}</strong>}
+          <span style={{fontSize:compact?9.5:11,fontWeight:700,letterSpacing:".22em",textTransform:"uppercase",color:"rgba(255,255,255,.6)"}}>Proposta Comercial</span>
+        </div>
+        <span style={{display:"inline-block",padding:compact?"4px 12px":"6px 15px",background:"rgba(255,255,255,.12)",border:"1px solid rgba(255,255,255,.18)",borderRadius:100,fontSize:compact?10.5:12.5,fontWeight:600,marginBottom:compact?14:20,color:"rgba(255,255,255,.92)"}}>{proposal.template}</span>
+        <h1 className="serif" style={{fontSize:compact?26:46,fontWeight:900,lineHeight:1.05,margin:0,letterSpacing:"-1.2px",maxWidth:680}}>{c.coverTitle||proposal.service}</h1>
+        {c.coverSubtitle && <p style={{fontSize:compact?14:19,opacity:.82,marginTop:compact?12:16,marginBottom:0,fontWeight:400,maxWidth:580,lineHeight:1.5}}>{c.coverSubtitle}</p>}
+        <div style={{height:1.5,background:`linear-gradient(90deg,${gold},transparent)`,margin:compact?"22px 0":"38px 0 26px",maxWidth:compact?240:420}}/>
+        <div style={{display:"flex",gap:compact?28:56,flexWrap:"wrap",fontSize:compact?12:14}}>
+          <div>
+            <div style={{textTransform:"uppercase",letterSpacing:".1em",fontSize:compact?9.5:10.5,opacity:.6,fontWeight:700,marginBottom:5}}>Preparado para</div>
+            <div style={{fontWeight:600,opacity:.95}}>{proposal.clientName||"—"}</div>
+            {proposal.company && <div style={{opacity:.7,fontSize:compact?11.5:13,marginTop:1}}>{proposal.company}</div>}
+          </div>
+          <div>
+            <div style={{textTransform:"uppercase",letterSpacing:".1em",fontSize:compact?9.5:10.5,opacity:.6,fontWeight:700,marginBottom:5}}>Data</div>
+            <div style={{fontWeight:600,opacity:.95}}>{fmtDate}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style={{padding:`${compact?6:18}px ${pad}px ${pad}px`}}>
+      {c.presentation && <><Eyebrow>Apresentação</Eyebrow>{String(c.presentation).split("\n").filter(Boolean).map((x,i)=><p key={i} style={{fontSize:compact?13.5:15.5,lineHeight:1.8,color:"#334155",margin:"0 0 12px"}}>{x}</p>)}</>}
+
+      {c.objectives?.length>0 && <><Eyebrow>Objetivos</Eyebrow><Li items={c.objectives}/></>}
+
+      {c.scope?.length>0 && <><Eyebrow>Escopo do projeto</Eyebrow><Li items={c.scope} mark/></>}
+
+      {c.timeline?.length>0 && <><Eyebrow>Cronograma</Eyebrow><div style={{display:"flex",flexDirection:"column",gap:compact?10:12}}>{c.timeline.map((t,i)=><div key={i} style={{display:"flex",gap:16,padding:compact?"13px 15px":"17px 19px",background:"#F7F6F1",borderRadius:13,border:`1px solid ${C.border}`,borderLeft:`3px solid ${brand}`}}><div style={{minWidth:compact?70:104,flexShrink:0}}><div style={{fontWeight:800,fontSize:compact?13:14.5}}>{t.phase}</div><div style={{fontSize:compact?11:12.5,color:brand,fontWeight:700,marginTop:2}}>{t.duration}</div></div><div style={{fontSize:compact?13:14.5,color:"#475569",lineHeight:1.65}}>{t.description}</div></div>)}</div></>}
+
+      {(c.investmentIntro||c.investmentItems?.length>0||c.investmentTotal) && <><Eyebrow>Investimento</Eyebrow>{c.investmentIntro && <p style={{fontSize:compact?13.5:15.5,lineHeight:1.75,color:"#334155",marginTop:0,marginBottom:16}}>{c.investmentIntro}</p>}<div style={{border:`1px solid ${C.border}`,borderRadius:14,overflow:"hidden",boxShadow:"0 2px 10px rgba(15,23,42,.04)"}}>{(c.investmentItems||[]).map((it,i)=><div key={i} style={{display:"flex",justifyContent:"space-between",gap:14,padding:compact?"12px 16px":"15px 20px",borderBottom:`1px solid ${C.border}`,fontSize:compact?13:15}}><span style={{color:"#334155"}}>{it.item}</span><b style={{whiteSpace:"nowrap"}}>{it.value}</b></div>)}{c.investmentTotal && <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:compact?"14px 16px":"18px 20px",background:`linear-gradient(135deg,${brand}0f,${gold}12)`}}><span style={{fontWeight:700,fontSize:compact?13.5:15,color:"#0B1220"}}>Investimento total</span><span className="serif" style={{color:brand,fontSize:compact?18:24,fontWeight:900,letterSpacing:"-.5px"}}>{c.investmentTotal}</span></div>}</div></>}
+
+      {c.benefits?.length>0 && <><Eyebrow>Benefícios</Eyebrow><div style={{display:"grid",gridTemplateColumns:compact?"1fr":"1fr 1fr",gap:compact?10:12}}>{c.benefits.map((b,i)=><div key={i} style={{display:"flex",gap:11,padding:compact?"12px 14px":"15px 17px",background:"#F7F6F1",borderRadius:12,border:`1px solid ${C.border}`}}><Icon n="check-circle" c={C.success} s={compact?16:18}/><span style={{fontSize:compact?13:14.5,color:"#334155",lineHeight:1.5}}>{b}</span></div>)}</div></>}
+
+      {c.differentials?.length>0 && <><Eyebrow>Diferenciais</Eyebrow><Li items={c.differentials}/></>}
+
+      {c.nextSteps?.length>0 && <><Eyebrow>Próximos passos</Eyebrow><div style={{display:"flex",flexDirection:"column",gap:compact?11:14}}>{c.nextSteps.map((s,i)=><div key={i} style={{display:"flex",gap:14,alignItems:"center"}}><div className="serif" style={{width:compact?30:38,height:compact?30:38,borderRadius:"50%",background:`linear-gradient(135deg,${brand},${C.accent})`,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:compact?14:17,flexShrink:0,boxShadow:`0 4px 12px ${brand}40`}}>{i+1}</div><span style={{fontSize:compact?13.5:15.5,color:"#334155",lineHeight:1.5}}>{s}</span></div>)}</div></>}
+
+      {c.closing && <div style={{marginTop:compact?28:50,padding:compact?"22px 22px":"34px 34px",background:`linear-gradient(150deg,#0E2019,${brand})`,borderRadius:18,color:"#fff",position:"relative",overflow:"hidden"}}>
+        <div style={{position:"absolute",top:-30,right:-20,width:compact?120:180,height:compact?120:180,borderRadius:"50%",background:"rgba(255,255,255,.04)",pointerEvents:"none"}}/>
+        <div style={{position:"relative"}}>
+          <p style={{fontSize:compact?14:17,lineHeight:1.75,margin:0,opacity:.95,fontWeight:400}}>{c.closing}</p>
+          <div style={{marginTop:compact?20:28,paddingTop:compact?18:24,borderTop:"1px solid rgba(255,255,255,.16)"}}>
+            <div style={{fontSize:compact?11:12,opacity:.6,marginBottom:7}}>Atenciosamente,</div>
+            {settings.logo
+              ? <img src={settings.logo} style={{height:compact?24:32,maxWidth:190,objectFit:"contain",borderRadius:6,background:"rgba(255,255,255,.96)",padding:"4px 8px",marginBottom:8}}/>
+              : <div className="serif" style={{fontSize:compact?17:21,fontWeight:800,marginBottom:6}}>{company}</div>}
+            <div style={{display:"flex",gap:compact?14:20,flexWrap:"wrap",fontSize:compact?12:13.5,opacity:.85,marginTop:6}}>
+              {settings.email && <span style={{display:"inline-flex",alignItems:"center",gap:6}}><Icon n="mail" c="rgba(255,255,255,.7)" s={14}/>{settings.email}</span>}
+              {settings.phone && <span style={{display:"inline-flex",alignItems:"center",gap:6}}><Icon n="phone" c="rgba(255,255,255,.7)" s={14}/>{settings.phone}</span>}
+            </div>
+          </div>
+        </div>
+      </div>}
+    </div>
+
+    <div style={{padding:compact?"14px 22px":"18px 56px",borderTop:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8,background:"#FCFCFD"}}>
+      <span style={{fontSize:compact?10.5:12,color:C.textSec,fontWeight:700}}>{company}</span>
+      <span style={{fontSize:compact?10:11.5,color:"#94A3B8"}}>Proposta gerada em {fmtDate}</span>
+    </div>
+  </div>;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
